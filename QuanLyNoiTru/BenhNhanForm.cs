@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
@@ -30,9 +31,7 @@ namespace QuanLyNoiTru
                          CCCD AS [CCCD], SoDienThoai AS [SĐT], DiaChi AS [Địa chỉ], NgheNghiep AS [Nghề nghiệp],
                          NguoiThan AS [Người thân], SDTNguoiThan AS [SĐT người thân], TinhTrang AS [Tình trạng bệnh]
                   FROM BENHNHAN
-                  WHERE MaBN LIKE @k OR HoTen LIKE @k OR CCCD LIKE @k OR SoDienThoai LIKE @k
-                  ORDER BY MaBN",
-                Db.P("@k", "%" + txtTim.Text.Trim() + "%"));
+                  ORDER BY MaBN");
             FmtCol(dgv, "Ngày sinh", "dd/MM/yyyy");
         }
 
@@ -63,7 +62,12 @@ namespace QuanLyNoiTru
 
         void Reset()
         {
-            txtTim.Text = "";
+            txtMatim.Clear();
+            txtTentim.Clear();
+            txtCccdtim.Clear();
+            txtSdttim.Clear();
+//            cboTimGioiTinh.SelectedIndex = 0;
+
             LoadData();
             dgv.CurrentCell = null;
             ClearInputs();
@@ -98,8 +102,6 @@ namespace QuanLyNoiTru
         // ---------- sự kiện ----------
 
         void dgv_SelectionChanged(object sender, EventArgs e) { if (ready) FillInputs(); }
-
-        void txtTim_TextChanged(object sender, EventArgs e) { if (ready) LoadData(); }
 
         void btnLamMoi_Click(object sender, EventArgs e) { Reset(); }
 
@@ -153,51 +155,75 @@ namespace QuanLyNoiTru
         // ---------- nhập / xuất file ----------
 
         void btnXuat_Click(object sender, EventArgs e) { XuatFile(dgv, "BenhNhan"); }
-
-        /// <summary>Nhập danh sách bệnh nhân từ file Excel/CSV (cột: Họ tên, Ngày sinh, Giới tính, CCCD, SĐT, ...). Mã BN tự sinh.</summary>
-        void btnNhap_Click(object sender, EventArgs e)
+       
+        //tim
+        private void btnTim_Click(object sender, EventArgs e)
         {
-            var dt = DocFile();
-            if (dt == null) return;
-            if (!dt.Columns.Contains("Họ tên")) { Warn("File phải có cột \"Họ tên\" ở dòng đầu tiên.\nCách dễ nhất: bấm \"Xuất ra file\" để lấy file mẫu."); return; }
+            string query = @"
+        SELECT MaBN AS [Mã BN],
+               HoTen AS [Họ tên],
+               NgaySinh AS [Ngày sinh],
+               GioiTinh AS [Giới tính],
+               CCCD AS [CCCD],
+               SoDienThoai AS [SĐT],
+               DiaChi AS [Địa chỉ],
+               NgheNghiep AS [Nghề nghiệp],
+               NguoiThan AS [Người thân],
+               SDTNguoiThan AS [SĐT người thân],
+               TinhTrang AS [Tình trạng bệnh]
+        FROM BENHNHAN
+        WHERE 1=1";
 
-            int ok = 0, loi = 0;
-            var chiTiet = new StringBuilder();
-            int dong = 1;
-            foreach (DataRow r in dt.Rows)
+            List<SqlParameter> paramList = new List<SqlParameter>();
+
+            if (!string.IsNullOrWhiteSpace(txtMatim.Text))
             {
-                dong++;
-                try
-                {
-                    string ten = Export.Get(r, "Họ tên");
-                    if (ten == "") throw new Exception("thiếu họ tên");
-
-                    DateTime ns;
-                    if (!Export.TryDate(Export.Get(r, "Ngày sinh"), out ns)) throw new Exception("ngày sinh không đúng (dd/MM/yyyy)");
-                    if (ns.Date > DateTime.Today) throw new Exception("ngày sinh ở tương lai");
-
-                    string gt = Export.Get(r, "Giới tính").Normalize(NormalizationForm.FormC);
-                    gt = gt.Equals("Nữ", StringComparison.OrdinalIgnoreCase) ? "Nữ" : "Nam";
-
-                    string cccd = Export.Get(r, "CCCD");
-                    if (!CccdHopLe(cccd)) throw new Exception("CCCD phải gồm 12 chữ số");
-
-                    Insert(ten, ns, gt, cccd, Export.Get(r, "SĐT"), Export.Get(r, "Địa chỉ"),
-                        Export.Get(r, "Nghề nghiệp"), Export.Get(r, "Người thân"),
-                        Export.Get(r, "SĐT người thân"), Export.Get(r, "Tình trạng bệnh"));
-                    ok++;
-                }
-                catch (Exception ex)
-                {
-                    loi++;
-                    if (loi <= 8) chiTiet.AppendLine("Dòng " + dong + ": " + (ex is SqlException ? "dữ liệu bị trùng hoặc sai ràng buộc" : ex.Message));
-                }
+                query += " AND MaBN LIKE @MaBN";
+                paramList.Add(Db.P("@MaBN",
+                    "%" + txtMatim.Text.Trim() + "%"));
             }
 
-            Reset();
-            string kq = "Đã nhập " + ok + " bệnh nhân.";
-            if (loi > 0) kq += "\nBỏ qua " + loi + " dòng lỗi:\n" + chiTiet;
-            Msg(kq);
+            if (!string.IsNullOrWhiteSpace(txtTentim.Text))
+            {
+                query += " AND HoTen LIKE @HoTen";
+                paramList.Add(Db.P("@HoTen",
+                    "%" + txtTentim.Text.Trim() + "%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(txtCccdtim.Text))
+            {
+                query += " AND CCCD LIKE @CCCD";
+                paramList.Add(Db.P("@CCCD",
+                    "%" + txtCccdtim.Text.Trim() + "%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(txtSdttim.Text))
+            {
+                query += " AND SoDienThoai LIKE @SDT";
+                paramList.Add(Db.P("@SDT",
+                    "%" + txtSdttim.Text.Trim() + "%"));
+            }
+
+            /*if (cboTimGioiTinh.SelectedIndex > 0)
+            {
+                query += " AND GioiTinh = @GioiTinh";
+                paramList.Add(Db.P("@GioiTinh",
+                    cboTimGioiTinh.Text));
+            }*/
+
+            query += " ORDER BY MaBN";
+
+            try
+            {
+                dgv.DataSource = Db.Query(query, paramList.ToArray());
+                FmtCol(dgv, "Ngày sinh", "dd/MM/yyyy");
+                dgv.CurrentCell = null;
+            }
+            catch (Exception ex)
+            {
+                Err(ex);
+            }
         }
+
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
@@ -16,6 +17,11 @@ namespace QuanLyNoiTru
             InitializeComponent();
             cmbGt.SelectedIndex = 0;
             Bind(cmbKhoa, Db.Query("SELECT MaKhoa, TenKhoa FROM KHOA ORDER BY MaKhoa"), "TenKhoa", "MaKhoa");
+            Bind(cbxKhoatim,
+            Db.Query("SELECT MaKhoa, TenKhoa FROM KHOA ORDER BY MaKhoa"),
+            "TenKhoa",
+            "MaKhoa");
+            cbxKhoatim.SelectedIndex = 0;
             LoadData();
             dgv.CurrentCell = null;
             ready = true;
@@ -30,9 +36,7 @@ namespace QuanLyNoiTru
                          b.ChuyenKhoa AS [Chuyên khoa], b.SoDienThoai AS [SĐT], b.Email AS [Email],
                          b.MaKhoa AS [Mã khoa], k.TenKhoa AS [Khoa], b.TrangThai AS [Đang làm việc]
                   FROM BACSI b LEFT JOIN KHOA k ON k.MaKhoa = b.MaKhoa
-                  WHERE b.MaBS LIKE @k OR b.HoTen LIKE @k OR b.ChuyenKhoa LIKE @k
-                  ORDER BY b.MaBS",
-                Db.P("@k", "%" + txtTim.Text.Trim() + "%"));
+                  ORDER BY b.MaBS");
             FmtCol(dgv, "Ngày sinh", "dd/MM/yyyy");
         }
 
@@ -61,7 +65,10 @@ namespace QuanLyNoiTru
 
         void Reset()
         {
-            txtTim.Text = "";
+            txtMatim.Clear();
+            txtTentim.Clear();
+            txtSdttim.Clear();
+            cbxKhoatim.SelectedIndex = 0;
             LoadData();
             dgv.CurrentCell = null;
             ClearInputs();
@@ -88,8 +95,6 @@ namespace QuanLyNoiTru
         // ---------- sự kiện ----------
 
         void dgv_SelectionChanged(object sender, EventArgs e) { if (ready) FillInputs(); }
-
-        void txtTim_TextChanged(object sender, EventArgs e) { if (ready) LoadData(); }
 
         void btnLamMoi_Click(object sender, EventArgs e) { Reset(); }
 
@@ -143,59 +148,58 @@ namespace QuanLyNoiTru
 
         void btnXuat_Click(object sender, EventArgs e) { XuatFile(dgv, "BacSi"); }
 
-        /// <summary>Nhập danh sách bác sĩ từ file Excel/CSV (cột: Họ tên, Ngày sinh, Giới tính, Chuyên khoa, SĐT, Email, Khoa). Mã BS tự sinh.</summary>
-        void btnNhap_Click(object sender, EventArgs e)
+
+
+        private void btnTim_Click(object sender, EventArgs e)
         {
-            var dt = DocFile();
-            if (dt == null) return;
-            if (!dt.Columns.Contains("Họ tên")) { Warn("File phải có cột \"Họ tên\" ở dòng đầu tiên.\nCách dễ nhất: bấm \"Xuất ra file\" để lấy file mẫu."); return; }
+            string query = @"SELECT b.MaBS AS [Mã BS], b.HoTen AS [Họ tên], b.NgaySinh AS [Ngày sinh], b.GioiTinh AS [Giới tính],
+                         b.ChuyenKhoa AS [Chuyên khoa], b.SoDienThoai AS [SĐT], b.Email AS [Email],
+                         b.MaKhoa AS [Mã khoa], k.TenKhoa AS [Khoa], b.TrangThai AS [Đang làm việc]
+                  FROM BACSI b LEFT JOIN KHOA k ON k.MaKhoa = b.MaKhoa
+            WHERE 1=1";
 
-            var khoaTable = Db.Query("SELECT MaKhoa, TenKhoa FROM KHOA");
-            int ok = 0, loi = 0, dong = 1;
-            var chiTiet = new StringBuilder();
+            List<SqlParameter> paramList = new List<SqlParameter>();
 
-            foreach (DataRow r in dt.Rows)
+            if (!string.IsNullOrWhiteSpace(txtMatim.Text))
             {
-                dong++;
-                try
-                {
-                    string ten = Export.Get(r, "Họ tên");
-                    if (ten == "") throw new Exception("thiếu họ tên");
-
-                    DateTime ns;
-                    if (!Export.TryDate(Export.Get(r, "Ngày sinh"), out ns)) throw new Exception("ngày sinh không đúng (dd/MM/yyyy)");
-
-                    // khoa: ưu tiên "Mã khoa", nếu không có thì tìm theo tên khoa
-                    string khoa = null;
-                    string maK = Export.Get(r, "Mã khoa"), tenK = Export.Get(r, "Khoa");
-                    foreach (DataRow k in khoaTable.Rows)
-                    {
-                        if ((maK != "" && string.Equals(k["MaKhoa"].ToString(), maK, StringComparison.OrdinalIgnoreCase)) ||
-                            (tenK != "" && string.Equals(k["TenKhoa"].ToString(), tenK, StringComparison.OrdinalIgnoreCase)))
-                        { khoa = k["MaKhoa"].ToString(); break; }
-                    }
-                    if (khoa == null) throw new Exception("không tìm thấy khoa \"" + (tenK != "" ? tenK : maK) + "\"");
-
-                    string gt = Export.Get(r, "Giới tính").Normalize(NormalizationForm.FormC);
-                    gt = gt.Equals("Nữ", StringComparison.OrdinalIgnoreCase) ? "Nữ" : "Nam";
-
-                    string lamStr = Export.Get(r, "Đang làm việc").ToLowerInvariant();
-                    bool lam = !(lamStr == "không" || lamStr == "khong" || lamStr == "0" || lamStr == "false");
-
-                    Insert(ten, ns, gt, Export.Get(r, "Chuyên khoa"), Export.Get(r, "SĐT"), Export.Get(r, "Email"), khoa, lam);
-                    ok++;
-                }
-                catch (Exception ex)
-                {
-                    loi++;
-                    if (loi <= 8) chiTiet.AppendLine("Dòng " + dong + ": " + (ex is SqlException ? "dữ liệu bị trùng hoặc sai ràng buộc" : ex.Message));
-                }
+                query += " AND MaBS LIKE @MaBS";
+                paramList.Add(Db.P("@MaBS",
+                    "%" + txtMatim.Text.Trim() + "%"));
             }
 
-            Reset();
-            string kq = "Đã nhập " + ok + " bác sĩ.";
-            if (loi > 0) kq += "\nBỏ qua " + loi + " dòng lỗi:\n" + chiTiet;
-            Msg(kq);
+            if (!string.IsNullOrWhiteSpace(txtTentim.Text))
+            {
+                query += " AND HoTen LIKE @HoTen";
+                paramList.Add(Db.P("@HoTen",
+                    "%" + txtTentim.Text.Trim() + "%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(txtSdttim.Text))
+            {
+                query += " AND SoDienThoai LIKE @SDT";
+                paramList.Add(Db.P("@SDT",
+                    "%" + txtSdttim.Text.Trim() + "%"));
+            }
+
+            if (cbxKhoatim.SelectedIndex >= 0)
+            {
+                query += " AND TenKhoa = @TenKhoa";
+                paramList.Add(Db.P("@TenKhoa",
+                    cbxKhoatim.Text));
+            }
+
+            query += " ORDER BY MaBS";
+
+            try
+            {
+                dgv.DataSource = Db.Query(query, paramList.ToArray());
+                FmtCol(dgv, "Ngày sinh", "dd/MM/yyyy");
+                dgv.CurrentCell = null;
+            }
+            catch (Exception ex)
+            {
+                Err(ex);
+            }
         }
     }
 }

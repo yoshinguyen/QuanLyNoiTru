@@ -193,43 +193,6 @@ namespace QuanLyNoiTru
             catch (Exception ex) { Err(ex); }
         }
 
-        void btnInHoaDon_Click(object sender, EventArgs e)
-        {
-            if (Val(cmbNV) == null) { Warn("Hãy chọn hồ sơ nhập viện."); return; }
-            try
-            {
-                Tinh(false);
-                decimal tong = tienPhong + tienThuoc + nudKham.Value + nudDV.Value;
-                var L = new List<string>();
-                L.Add("#HÓA ĐƠN VIỆN PHÍ");
-                L.Add("");
-                L.Add("Mã hóa đơn : " + (maVP == "" ? "(chưa lưu)" : maVP));
-                L.Add("Ngày in    : " + DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
-                L.Add("Người lập  : " + Session.FullName);
-                L.Add("Bệnh nhân  : " + tenBN + " (" + maBN + ")");
-                L.Add("Mã nhập viện: " + Val(cmbNV));
-                L.Add("Bác sĩ     : " + tenBS);
-                L.Add("Phòng      : " + tenPhong);
-                L.Add("Vào viện   : " + vao.ToString("dd/MM/yyyy HH:mm"));
-                L.Add("Ra viện    : " + (ra.HasValue ? ra.Value.ToString("dd/MM/yyyy HH:mm") : "(đang điều trị)"));
-                L.Add(new string('-', 60));
-                L.Add(Row("Tiền phòng (" + soNgay + " ngày)", tienPhong));
-                L.Add(Row("Tiền thuốc", tienThuoc));
-                L.Add(Row("Tiền khám", nudKham.Value));
-                L.Add(Row("Tiền dịch vụ", nudDV.Value));
-                L.Add(new string('-', 60));
-                L.Add(Row("TỔNG CỘNG", tong));
-                L.Add("");
-                L.Add("Trạng thái: " + trangThai);
-                L.Add("");
-                L.Add("      Người nộp tiền                     Người lập hóa đơn");
-                L.Add("      (ký, ghi rõ họ tên)                (ký, ghi rõ họ tên)");
-
-                Export.Preview(Export.TextDoc(L), "Hóa đơn viện phí");
-            }
-            catch (Exception ex) { Err(ex); }
-        }
-
         static string Row(string label, decimal amount)
         {
             return label.PadRight(32) + Fmt.Money(amount).PadLeft(28);

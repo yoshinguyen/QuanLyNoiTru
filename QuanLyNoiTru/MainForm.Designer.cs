@@ -22,7 +22,8 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
-        {            this.pnlContent = new System.Windows.Forms.Panel();
+        {            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            this.pnlContent = new System.Windows.Forms.Panel();
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.lblTitle = new System.Windows.Forms.Label();
             this.pnlMenu = new System.Windows.Forms.Panel();
@@ -35,8 +36,10 @@
             this.btnVienPhi = new System.Windows.Forms.Button();
             this.btnBaoCao = new System.Windows.Forms.Button();
             this.btnDangXuat = new System.Windows.Forms.Button();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.pnlHeader.SuspendLayout();
             this.pnlMenu.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // pnlContent
@@ -73,6 +76,7 @@
             // pnlMenu
             // 
             this.pnlMenu.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(58)))), ((int)(((byte)(95)))));
+            this.pnlMenu.Controls.Add(this.pictureBox1);
             this.pnlMenu.Controls.Add(this.lblLogo);
             this.pnlMenu.Controls.Add(this.btnBenhNhan);
             this.pnlMenu.Controls.Add(this.btnBacSi);
@@ -92,11 +96,11 @@
             // 
             this.lblLogo.Font = new System.Drawing.Font("Segoe UI", 15F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblLogo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
-            this.lblLogo.Location = new System.Drawing.Point(0, 0);
+            this.lblLogo.Location = new System.Drawing.Point(45, 0);
             this.lblLogo.Name = "lblLogo";
-            this.lblLogo.Size = new System.Drawing.Size(200, 60);
+            this.lblLogo.Size = new System.Drawing.Size(155, 60);
             this.lblLogo.TabIndex = 5;
-            this.lblLogo.Text = "NỘI TRÚ";
+            this.lblLogo.Text = "QUẢN LÝ NỘI TRÚ";
             this.lblLogo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btnBenhNhan
@@ -226,6 +230,16 @@
             this.btnDangXuat.UseVisualStyleBackColor = false;
             this.btnDangXuat.Click += new System.EventHandler(this.btnDangXuat_Click);
             // 
+            // pictureBox1
+            // 
+            this.pictureBox1.BackColor = System.Drawing.Color.Transparent;
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(0, 7);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(45, 60);
+            this.pictureBox1.TabIndex = 0;
+            this.pictureBox1.TabStop = false;
+            // 
             // MainForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -241,6 +255,7 @@
             this.Shown += new System.EventHandler(this.MainForm_Shown);
             this.pnlHeader.ResumeLayout(false);
             this.pnlMenu.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -259,6 +274,7 @@
         private System.Windows.Forms.Button btnDonThuoc;
         private System.Windows.Forms.Button btnVienPhi;
         private System.Windows.Forms.Button btnBaoCao;
-        private System.Windows.Forms.Button btnDangXuat;
+        private System.Windows.Forms.Button btnDangXuat;
+        private System.Windows.Forms.PictureBox pictureBox1;
     }
 }
