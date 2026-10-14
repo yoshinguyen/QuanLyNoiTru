@@ -1,0 +1,238 @@
+CREATE DATABASE QuanLyBenhNhanNoiTru1234;
+
+USE QuanLyBenhNhanNoiTru1234;
+
+CREATE TABLE TAIKHOAN (
+    TenDangNhap NVARCHAR(50)  NOT NULL PRIMARY KEY,
+    MatKhau     NVARCHAR(100) NOT NULL,
+    HoTen       NVARCHAR(100) NOT NULL,
+    VaiTro      NVARCHAR(30)  NOT NULL DEFAULT N'Admin',
+    TrangThai   BIT           NOT NULL DEFAULT 1
+);
+
+CREATE TABLE KHOA (
+    MaKhoa  NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    TenKhoa NVARCHAR(100) NOT NULL
+);
+
+CREATE TABLE PHONG (
+    MaPhong   NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    TenPhong  NVARCHAR(100) NOT NULL,
+    MaKhoa    NVARCHAR(10)  NOT NULL REFERENCES KHOA(MaKhoa),
+    DonGia    DECIMAL(18,0) NOT NULL DEFAULT 0 CHECK (DonGia >= 0),   -- tiền phòng / ngày
+    TrangThai BIT           NOT NULL DEFAULT 1                        -- 1 = đang hoạt động
+);
+
+CREATE TABLE GIUONG (
+    MaGiuong  NVARCHAR(15) NOT NULL PRIMARY KEY,
+    MaPhong   NVARCHAR(10) NOT NULL REFERENCES PHONG(MaPhong),
+    SoGiuong  INT          NOT NULL,
+    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'Trống'
+              CHECK (TrangThai IN (N'Trống', N'Đang sử dụng'))
+);
+
+CREATE TABLE BACSI (
+    MaBS         NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    HoTen        NVARCHAR(100) NOT NULL,
+    NgaySinh     DATE          NULL,
+    GioiTinh     NVARCHAR(5)   NULL,
+    ChuyenKhoa   NVARCHAR(100) NULL,
+    SoDienThoai  NVARCHAR(20)  NULL,
+    Email        NVARCHAR(100) NULL,
+    MaKhoa       NVARCHAR(10)  NULL REFERENCES KHOA(MaKhoa),
+    TrangThai    BIT           NOT NULL DEFAULT 1                     -- 1 = đang làm việc
+);
+
+CREATE TABLE BENHNHAN (
+    MaBN          NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    HoTen         NVARCHAR(100) NOT NULL,
+    NgaySinh      DATE          NULL,
+    GioiTinh      NVARCHAR(5)   NULL,
+    CCCD          NVARCHAR(12)  NULL,
+    SoDienThoai   NVARCHAR(20)  NULL,
+    DiaChi        NVARCHAR(200) NULL,
+    NgheNghiep    NVARCHAR(100) NULL,
+    NguoiThan     NVARCHAR(100) NULL,
+    SDTNguoiThan  NVARCHAR(20)  NULL,
+    TinhTrang     NVARCHAR(500) NULL                                  -- tình trạng bệnh hiện tại
+);
+
+CREATE TABLE NHAPVIEN (
+    MaNhapVien    NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    MaBN          NVARCHAR(10)  NOT NULL REFERENCES BENHNHAN(MaBN),
+    MaBS          NVARCHAR(10)  NULL REFERENCES BACSI(MaBS),
+    MaGiuong      NVARCHAR(15)  NULL REFERENCES GIUONG(MaGiuong),
+    NgayNhapVien  DATETIME      NOT NULL DEFAULT GETDATE(),
+    NgayRaVien    DATETIME      NULL,
+    LyDoNhapVien  NVARCHAR(500) NULL,
+    TrangThai     NVARCHAR(20)  NOT NULL DEFAULT N'Đang điều trị'
+                  CHECK (TrangThai IN (N'Đang điều trị', N'Đã ra viện', N'Hủy')),
+    GhiChu        NVARCHAR(500) NULL
+);
+
+CREATE UNIQUE INDEX UX_BENHNHAN_CCCD ON BENHNHAN(CCCD) WHERE CCCD IS NOT NULL;
+
+CREATE UNIQUE INDEX UX_NHAPVIEN_BN_DANGDT ON NHAPVIEN(MaBN)
+    WHERE TrangThai = N'Đang điều trị';
+CREATE UNIQUE INDEX UX_NHAPVIEN_GIUONG_DANGDT ON NHAPVIEN(MaGiuong)
+    WHERE TrangThai = N'Đang điều trị' AND MaGiuong IS NOT NULL;
+    
+CREATE TABLE BENHAN (
+    MaBA          NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    MaNhapVien    NVARCHAR(10)  NOT NULL REFERENCES NHAPVIEN(MaNhapVien),
+    NgayLap       DATETIME      NOT NULL DEFAULT GETDATE(),
+    TrieuChung    NVARCHAR(1000) NULL,
+    ChanDoan      NVARCHAR(1000) NULL,
+    KetQuaKham    NVARCHAR(1000) NULL,
+    HuongDieuTri  NVARCHAR(1000) NULL
+);
+ 
+CREATE TABLE THUOC (
+    MaThuoc    NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    TenThuoc   NVARCHAR(100) NOT NULL,
+    DonVi      NVARCHAR(20)  NULL,
+    DonGia     DECIMAL(18,0) NOT NULL DEFAULT 0 CHECK (DonGia >= 0),
+    SoLuongTon INT           NOT NULL DEFAULT 0 CHECK (SoLuongTon >= 0),
+    TrangThai  BIT           NOT NULL DEFAULT 1
+);
+ 
+CREATE TABLE DONTHUOC (
+    MaDon      NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    MaBA       NVARCHAR(10)  NOT NULL REFERENCES BENHAN(MaBA),
+    NgayKeDon  DATETIME      NOT NULL DEFAULT GETDATE(),
+    GhiChu     NVARCHAR(500) NULL
+);
+ 
+CREATE TABLE CT_DONTHUOC (
+    MaDon     NVARCHAR(10)  NOT NULL REFERENCES DONTHUOC(MaDon),
+    MaThuoc   NVARCHAR(10)  NOT NULL REFERENCES THUOC(MaThuoc),
+    SoLuong   INT           NOT NULL CHECK (SoLuong > 0),
+    LieuDung  NVARCHAR(200) NULL,
+    CachDung  NVARCHAR(200) NULL,
+    DonGia    DECIMAL(18,0) NOT NULL,                                  -- giá tại thời điểm kê đơn
+    ThanhTien AS (SoLuong * DonGia) PERSISTED,
+    PRIMARY KEY (MaDon, MaThuoc)
+);
+ 
+CREATE TABLE VIENPHI (
+    MaVP        NVARCHAR(10)  NOT NULL PRIMARY KEY,
+    MaNhapVien  NVARCHAR(10)  NOT NULL UNIQUE REFERENCES NHAPVIEN(MaNhapVien),
+    TienPhong   DECIMAL(18,0) NOT NULL DEFAULT 0,
+    TienThuoc   DECIMAL(18,0) NOT NULL DEFAULT 0,
+    TienKham    DECIMAL(18,0) NOT NULL DEFAULT 0,
+    TienDichVu  DECIMAL(18,0) NOT NULL DEFAULT 0,
+    TongTien    AS (TienPhong + TienThuoc + TienKham + TienDichVu) PERSISTED,
+    NgayLap     DATETIME      NOT NULL DEFAULT GETDATE(),
+    TrangThai   NVARCHAR(20)  NOT NULL DEFAULT N'Chưa thanh toán'
+                CHECK (TrangThai IN (N'Chưa thanh toán', N'Đã thanh toán'))
+);
+
+
+-- Tài khoản
+INSERT INTO TAIKHOAN(TenDangNhap, MatKhau, HoTen, VaiTro)
+VALUES (N'admin', N'123456', N'Quản trị viên', N'Admin');
+
+
+update TAIKHOAN set TenDangNhap=N'1', MatKhau=N'1' where TenDangNhap=N'admin';
+
+-- Khoa
+INSERT INTO KHOA(MaKhoa, TenKhoa) VALUES
+ (N'K01', N'Khoa Nội'),
+ (N'K02', N'Khoa Ngoại'),
+ (N'K03', N'Khoa Nhi'),
+ (N'K04', N'Khoa Sản');
+ 
+-- Phòng (mỗi khoa 1 phòng thường + 1 phòng VIP)
+INSERT INTO PHONG(MaPhong, TenPhong, MaKhoa, DonGia) VALUES
+ (N'P101', N'Phòng 101',     N'K01', 250000),
+ (N'P102', N'Phòng VIP 102', N'K01', 600000),
+ (N'P201', N'Phòng 201',     N'K02', 250000),
+ (N'P202', N'Phòng VIP 202', N'K02', 600000),
+ (N'P301', N'Phòng 301',     N'K03', 250000),
+ (N'P302', N'Phòng VIP 302', N'K03', 600000),
+ (N'P401', N'Phòng 401',     N'K04', 250000),
+ (N'P402', N'Phòng VIP 402', N'K04', 600000);
+ 
+-- Giường: mỗi phòng 4 giường (mã dạng P101-1, P101-2, ...)
+INSERT INTO GIUONG(MaGiuong, MaPhong, SoGiuong, TrangThai)
+SELECT p.MaPhong + N'-' + CAST(v.n AS NVARCHAR(2)), p.MaPhong, v.n, N'Trống'
+FROM PHONG p
+CROSS JOIN (VALUES (1), (2), (3), (4)) AS v(n);
+ 
+-- Bác sĩ
+INSERT INTO BACSI(MaBS, HoTen, NgaySinh, GioiTinh, ChuyenKhoa, SoDienThoai, Email, MaKhoa, TrangThai) VALUES
+ (N'BS01', N'Nguyễn Văn Hùng',  '1980-03-12', N'Nam', N'Nội tổng quát',   N'0901000001', N'hung.nv@benhvien.vn',  N'K01', 1),
+ (N'BS02', N'Trần Thị Mai',     '1985-07-25', N'Nữ',  N'Tim mạch',        N'0901000002', N'mai.tt@benhvien.vn',   N'K01', 1),
+ (N'BS03', N'Lê Quang Minh',    '1978-11-02', N'Nam', N'Chấn thương',     N'0901000003', N'minh.lq@benhvien.vn',  N'K02', 1),
+ (N'BS04', N'Phạm Thu Hà',      '1988-01-18', N'Nữ',  N'Phẫu thuật',      N'0901000004', N'ha.pt@benhvien.vn',    N'K02', 1),
+ (N'BS05', N'Hoàng Đức Anh',    '1983-09-09', N'Nam', N'Nhi hô hấp',      N'0901000005', N'anh.hd@benhvien.vn',   N'K03', 1),
+ (N'BS06', N'Vũ Thị Lan',       '1982-05-30', N'Nữ',  N'Sản phụ khoa',    N'0901000006', N'lan.vt@benhvien.vn',   N'K04', 1);
+ 
+-- Bệnh nhân (TinhTrang = chẩn đoán gần nhất)
+INSERT INTO BENHNHAN(MaBN, HoTen, NgaySinh, GioiTinh, CCCD, SoDienThoai, DiaChi, NgheNghiep, NguoiThan, SDTNguoiThan, TinhTrang) VALUES
+ (N'BN01', N'Nguyễn Văn An',    '1975-04-10', N'Nam', N'001075000011', N'0912000001', N'12 Lý Thường Kiệt, Hà Nội',   N'Giáo viên',      N'Nguyễn Thị Hoa',  N'0987000001', N'Viêm phổi cấp'),
+ (N'BN02', N'Lê Minh Khang',    '2018-08-21', N'Nam', NULL,            N'0912000002', N'45 Trần Phú, Hà Nội',          N'Học sinh',       N'Lê Văn Tuấn',     N'0987000002', N'Viêm phế quản'),
+ (N'BN03', N'Phạm Quốc Đạt',    '1990-12-05', N'Nam', N'001090000033', N'0912000003', N'78 Nguyễn Trãi, Hà Nội',       N'Kỹ sư',          N'Phạm Thị Thu',    N'0987000003', N'Gãy xương cẳng tay, đã phẫu thuật'),
+ (N'BN04', N'Hoàng Thị Lan',    '1968-02-14', N'Nữ',  N'001068000044', N'0912000004', N'23 Hoàng Hoa Thám, Hà Nội',    N'Nội trợ',        N'Hoàng Văn Nam',   N'0987000004', NULL),
+ (N'BN05', N'Đỗ Thị Hồng',      '1995-06-30', N'Nữ',  N'001095000055', N'0912000005', N'9 Kim Mã, Hà Nội',             N'Nhân viên VP',   N'Đỗ Văn Long',     N'0987000005', NULL),
+ (N'BN06', N'Bùi Văn Cường',    '1960-10-18', N'Nam', N'001060000066', N'0912000006', N'31 Giảng Võ, Hà Nội',          N'Hưu trí',        N'Bùi Thị Dung',    N'0987000006', NULL);
+ 
+-- Hồ sơ nhập viện
+--   NV01, NV02: đang điều trị (giường Đang sử dụng) ; NV03: đã ra viện (giường Trống)
+INSERT INTO NHAPVIEN(MaNhapVien, MaBN, MaBS, MaGiuong, NgayNhapVien, NgayRaVien, LyDoNhapVien, TrangThai, GhiChu) VALUES
+ (N'NV01', N'BN01', N'BS01', N'P101-1', '2026-10-12 08:30', NULL,               N'Sốt cao, ho, khó thở',      N'Đang điều trị', NULL),
+ (N'NV02', N'BN02', N'BS05', N'P301-1', '2026-10-13 14:00', NULL,               N'Ho kéo dài, sốt nhẹ',       N'Đang điều trị', N'Có người nhà đi kèm'),
+ (N'NV03', N'BN03', N'BS03', N'P201-1', '2026-10-01 08:00', '2026-10-04 10:00', N'Tai nạn, đau cẳng tay trái', N'Đã ra viện',    N'Đã phẫu thuật kết hợp xương');
+ 
+UPDATE GIUONG SET TrangThai = N'Đang sử dụng' WHERE MaGiuong IN (N'P101-1', N'P301-1');
+ 
+-- Bệnh án (mỗi lần khám 1 dòng)
+INSERT INTO BENHAN(MaBA, MaNhapVien, NgayLap, TrieuChung, ChanDoan, KetQuaKham, HuongDieuTri) VALUES
+ (N'BA01', N'NV01', '2026-10-12 09:00', N'Sốt 39 độ, ho đờm, khó thở', N'Viêm phổi cấp',    N'X-quang: đám mờ thùy dưới phổi phải', N'Kháng sinh đường tĩnh mạch, hạ sốt, theo dõi SpO2'),
+ (N'BA02', N'NV02', '2026-10-13 14:30', N'Ho khan, sốt nhẹ 37.8',      N'Viêm phế quản',  N'Phổi có ran rít nhẹ',                 N'Thuốc ho, hạ sốt, theo dõi hô hấp'),
+ (N'BA03', N'NV03', '2026-10-01 09:00', N'Đau, sưng biến dạng cẳng tay trái', N'Gãy xương cẳng tay, đã phẫu thuật', N'X-quang: gãy 2 xương cẳng tay', N'Phẫu thuật kết hợp xương, giảm đau, bất động');
+ 
+-- Thuốc (tồn kho ban đầu; sau đó sẽ trừ theo các đơn mẫu bên dưới)
+INSERT INTO THUOC(MaThuoc, TenThuoc, DonVi, DonGia, SoLuongTon, TrangThai) VALUES
+ (N'T01', N'Paracetamol 500mg',   N'Viên', 1000,  500, 1),
+ (N'T02', N'Amoxicillin 500mg',   N'Viên', 3000,  400, 1),
+ (N'T03', N'Ibuprofen 400mg',     N'Viên', 2000,  300, 1),
+ (N'T04', N'Omeprazole 20mg',     N'Viên', 2500,  300, 1),
+ (N'T05', N'Siro ho Prospan',     N'Chai', 85000, 60,  1),
+ (N'T06', N'Ceftriaxone 1g',      N'Lọ',   45000, 100, 1);
+ 
+-- Đơn thuốc
+INSERT INTO DONTHUOC(MaDon, MaBA, NgayKeDon, GhiChu) VALUES
+ (N'DT01', N'BA01', '2026-10-12 09:30', N'Đơn điều trị viêm phổi'),
+ (N'DT02', N'BA02', '2026-10-13 15:00', N'Đơn điều trị viêm phế quản'),
+ (N'DT03', N'BA03', '2026-10-01 12:00', N'Giảm đau sau phẫu thuật');
+ 
+INSERT INTO CT_DONTHUOC(MaDon, MaThuoc, SoLuong, LieuDung, CachDung, DonGia)
+SELECT x.MaDon, x.MaThuoc, x.SoLuong, x.LieuDung, x.CachDung, t.DonGia
+FROM (VALUES
+    (N'DT01', N'T06', 6,  N'1 lọ x 1 lần/ngày',     N'Tiêm tĩnh mạch'),
+    (N'DT01', N'T01', 12, N'1 viên x 3 lần/ngày',   N'Uống khi sốt trên 38.5 độ'),
+    (N'DT02', N'T05', 1,  N'5ml x 3 lần/ngày',      N'Uống sau ăn'),
+    (N'DT02', N'T01', 6,  N'1/2 viên x 3 lần/ngày', N'Uống khi sốt'),
+    (N'DT03', N'T03', 20, N'1 viên x 2 lần/ngày',   N'Uống sau ăn no'),
+    (N'DT03', N'T04', 10, N'1 viên x 1 lần/ngày',   N'Uống trước ăn sáng')
+) AS x(MaDon, MaThuoc, SoLuong, LieuDung, CachDung)
+JOIN THUOC t ON t.MaThuoc = x.MaThuoc;
+
+-- Trừ tồn kho theo các đơn đã kê (giống cách chương trình tự trừ)
+UPDATE t
+SET t.SoLuongTon = t.SoLuongTon - s.Tong
+FROM THUOC t
+JOIN (SELECT MaThuoc, SUM(SoLuong) AS Tong FROM CT_DONTHUOC GROUP BY MaThuoc) s ON s.MaThuoc = t.MaThuoc;
+ 
+-- Viện phí cho hồ sơ đã ra viện NV03
+--   Tiền phòng = 4 ngày (01/10 -> 04/10, tính cả ngày vào và ra) x 250.000
+--   Tiền thuốc = tổng thành tiền các đơn thuốc của lần nhập viện
+INSERT INTO VIENPHI(MaVP, MaNhapVien, TienPhong, TienThuoc, TienKham, TienDichVu, NgayLap, TrangThai)
+SELECT N'VP01', N'NV03', 4 * 250000,
+       ISNULL((SELECT SUM(ct.ThanhTien)
+               FROM CT_DONTHUOC ct
+               JOIN DONTHUOC d ON d.MaDon = ct.MaDon
+               JOIN BENHAN ba ON ba.MaBA = d.MaBA
+               WHERE ba.MaNhapVien = N'NV03'), 0),
+       150000, 2500000, '2026-10-04 11:00', N'Đã thanh toán';

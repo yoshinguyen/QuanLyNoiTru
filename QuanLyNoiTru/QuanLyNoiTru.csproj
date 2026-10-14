@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>QuanLyNoiTru</RootNamespace>
+    <AssemblyName>QuanLyNoiTru</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Compile Update="BacSiForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="BaoCaoForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="BenhAnForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="BenhNhanForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="DonThuocForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="NhapVienForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="VienPhiForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="BaseForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+
+</Project>
